@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>LET'S DO THIS</title>
+		
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+		<script type="text/javascript">
+		
+			var numNodes = 0;
+			var Nodes = new Array(); // stores node-objects
+			var Wrapper;
+			var Roots;
+			
+			$(document).ready(function(){
+				
+				Wrapper = $('#wrapper.empty');
+				Roots = new Array(); // stores root ids
+				
+				$(Wrapper).click(function(e){
+					if(Wrapper.hasClass('empty')){
+						Wrapper.removeClass('empty');
+						$(Wrapper).unbind('click');
+						var t = new Node({name: 'Arbeit'});
+						Nodes[t.id] = t;
+						Roots.push(t.id);
+					}
+					
+					reload_wrapper();
+				});
+				
+				
+			});
+			
+			Array.prototype.remove = function() {
+				var what, a = arguments, L = a.length, ax;
+				while (L && this.length) {
+					what = a[--L];
+					while ((ax = this.indexOf(what)) !== -1) {
+						this.splice(ax, 1);
+					}
+				}
+				return this;
+			};
+
+			function reload_wrapper(){
+				$(Wrapper).html('');
+				$.each(Roots, function(i, v){
+					var vDom = Nodes[v].getDom();
+					$(Wrapper).append(vDom);
+				});
+			}
+			
+			/**
+			 * Node Object
+			 */
+			var Node = function(opt){
+				
+				if(opt){
+					this.name = opt.name || 'Arbeit';
+					this.parents = opt.parents || null;
+					this.children = opt.children || null;
+					this.type = opt.type || 'TASK';
+				} else {
+					this.name = 'Arbeit';
+					this.parents = null;
+					this.children = null;
+					this.type = 'TASK';
+				}
+				this.id = numNodes++;
+				
+				function hasParents() {
+					return (this.parents != null && this.parents.length > 0);
+				}
+				
+				function hasChildren() {
+					return (this.children != null && this.children.length > 0);
+				}
+				
+				function addChild(c){
+					console.log("adding child id "+c+" to "+this.id);
+					Nodes[c].addParent(this);
+					if (!this.hasChildren()){
+						this.children = new Array();
+					}
+					this.children.push(c);
+					console.log("children", this.children);
+					
+				}
+				
+				function addParent(p){
+					if (!this.hasParents()){
+						this.parents = new Array(p.id);
+					}
+					this.parents.push(p.id);
+					
+				}
+				
+				function getDom(){
+					var dom = $('<div class="layer"></div>');
+					var node = $('<div class="node"></div>');
+					$(node).html('name: '+this.name);
+					var id = this.id;
+					
+					if(!this.hasParents()){
+						
+						$(node).addClass('root');
+						
+						var addParentBtn = $('<span class="edit-button visible" id="add-parent-'+id+'">+P</span>');
+						
+						
+						$(addParentBtn).click(function(e){
+							var n = new Node({name: 'Freizeit'});
+							Nodes[n.id] = n;
+							n.addChild(Nodes[id].id)
+							Nodes[id].addParent(n);
+							Roots.splice(Nodes.indexOf(id), 1, n.id)
+							reload_wrapper();
+						});
+						$(node).prepend(addParentBtn);
+					}
+					
+					if(this.hasChildren()){
+						<!-- $(dom).append('<span class="edit-button visible" id="add-child-'+this.id+'">+</span>'); --> // if increases depth
+						$.each(this.children, function(i, v){
+							$(Nodes[v].getDom()).appendTo(node);
+						});
+					} else {
+						$(node).addClass('leaf');
+					}
+					
+					var addSiblingBtn = $('<div class="sibling-slot"><span class="edit-button visible" id="add-sibling-'+this.id+'">+S</span></div>');
+					
+					
+					$(addSiblingBtn).click(function(e){
+						var n = new Node({name: 'Jonglieren'});
+						/*
+						 * COPIED FROM addParentBtn. NEED TO CHANGE! TODO!
+						Nodes[n.id] = n;
+						n.addChild(Nodes[id].id)
+						Nodes[id].addParent(n);
+						Roots.splice(Nodes.indexOf(id), 1, n.id)
+						reload_wrapper();
+						*/
+					});
+					$(dom).append($(node));
+					$(dom).append($(addSiblingBtn));
+					return $(dom);
+				}
+				
+				
+				/* public */
+				return {
+					id: this.id,
+					name: this.name,
+					type: this.type,
+					parents: this.parents,
+					children: this.children,
+					hasParents: hasParents,
+					hasChildren: hasChildren,
+					addChild: addChild,
+					addParent: addParent,
+					getDom: getDom,
+				}
+			}
+			
+		</script>
+		
+		<style>
+			body {
+				position: absolute;
+				background-color: #ddd;
+				width: calc(99% - 100px);
+				height: 100%;
+				padding: 50px;
+				text-align: center;
+			}
+			#wrapper{
+				position: relative;
+				background-color: #eee;
+				width: 1200px;
+				height: 600px;
+				margin: 0 auto;
+				border: 1px solid black;
+				text-align: center;
+				overflow: auto;
+			}
+			.empty {
+				background-image: url(http://www.clker.com/cliparts/e/6/d/7/1194994263582955302add.svg.hi.png);
+				background-position: center center;
+				background-repeat: no-repeat;
+				background-size: auto 100%;
+			}
+			.node {
+				width: 300px;
+				margin: 4px;
+				margin-left: 20px;
+				padding: 3px;
+				text-align: left;
+				background-color: #ccc;
+				color: #000;
+				border: 1px solid black;
+			}
+			.leaf {
+				background-color: #fff;
+				color: #000;
+			}
+			.root {
+				background-color: #000;
+				color: #fff;
+			}
+			.edit-button {
+				display: none;
+			}
+			.edit-button.visible {
+				display: inline-block;
+				border: 1px dashed #ccc;
+				margin-right: 4px;
+				color: red;
+			}
+			.sibling-slot {
+				border: 1px dashed black;
+				width: 300px;
+				margin: 4px;
+				margin-left: 20px;
+				padding: 3px;
+				text-align: left;
+				background-color: #ccc;
+				color: #000;
+			}
+		</style>
+	</head>
+	
+	<body>
+		<div id="wrapper" class="empty"></div>
+	</body>
+</html>
